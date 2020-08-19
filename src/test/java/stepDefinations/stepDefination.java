@@ -21,6 +21,7 @@ import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
 import pojo.AddPlace;
 import pojo.Location;
+import resources.APIResources;
 import resources.TestDataBuild;
 import resources.Utils;
 
@@ -29,23 +30,34 @@ public class stepDefination extends Utils {
 	ResponseSpecification resspec;
 	Response response;
 	TestDataBuild data = new TestDataBuild();
+	static String place_id;
 	
+//	String place_id;
+//	JsonPath js;
 	
-	@Given("Add Place Payload")
-	public void add_Place_Payload() throws IOException {
+	@Given("Add Place Payload with {string} {string} {string}")
+	public void add_Place_Payload_with(String name, String language, String address) throws IOException{
 	    // Write code here that turns the phrase above into concrete actions
 
 		
 		res=given().spec(requestSpecification())
-		.body(data.addplacePayLoad());
+		.body(data.addplacePayLoad(name,language,address));
 	}
 
-	@When("User Calls {string} with Post http request")
-	public void user_Calls_with_Post_http_request(String string) {
+	@When("User Calls {string} with {string} http request")
+	public void user_Calls_with_http_request(String resource,String method) {
 	    // Write code here that turns the phrase above into concrete actions
+		//constructor will be called with value of resource which you pass
+		APIResources resourceAPI=APIResources.valueOf(resource);
+		System.out.println(resourceAPI.getResource());
+		
 		resspec =new ResponseSpecBuilder().expectStatusCode(200).expectContentType(ContentType.JSON).build();
-		response=res.when().post("/maps/api/place/add/json")
-				.then().spec(resspec).extract().response();
+		
+		if(method.equalsIgnoreCase("POST"))
+		response=res.when().post(resourceAPI.getResource());
+		else if(method.equalsIgnoreCase("GET"))
+		response=res.when().get(resourceAPI.getResource());	
+		
 	}
 
 	@Then("the API call got success with status code {int}")
@@ -57,10 +69,30 @@ public class stepDefination extends Utils {
 	@Then("{string} in response body is {string}")
 	public void in_response_body_is(String keyValue, String Expectedvalue) {
 	    // Write code here that turns the phrase above into concrete actions
-		String resp=response.asString();
-	    JsonPath js= new JsonPath(resp);
-	    assertEquals(js.get(keyValue).toString(),Expectedvalue);
+
+		
+	    assertEquals(getJsonPath(response,keyValue),Expectedvalue);
+	    
 	    
 	}
+	
+	@Then("verify place Id created maps to {string} using {string}")
+	public void verify_place_Id_created_maps_to_using(String expectedName, String resource) throws IOException {
+	    // Write code here that turns the phrase above into concrete actions
+	  //prepare request spec
+		//get API call
+		place_id=getJsonPath(response,"place_id");
+		res=given().spec(requestSpecification()).queryParam("place_id", place_id);
+		user_Calls_with_http_request(resource,"GET");
+		String actualName=getJsonPath(response,"name");
+		assertEquals(actualName,expectedName);
+	}
+	
+	@Given("DeletePlace Payload")
+	public void deleteplace_Payload() throws IOException {
+	    // Write code here that turns the phrase above into concrete actions
+	   res= given().spec(requestSpecification()).body(data.deletePlacePayload(place_id));
+	}
+
 
 }
