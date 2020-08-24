@@ -2,7 +2,6 @@ package stepDefinations;
 
 import java.io.IOException;
 
-import cucumber.runtime.StepDefinition;
 import io.cucumber.java.Before;
 
 public class Hooks {
